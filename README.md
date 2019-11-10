@@ -1,0 +1,8 @@
+# GBTetris-AI
+A Tetris in C++ for terminal, but with an Evolutionary AI implemented. All genes and values were choosen based on [this paper](http://www.cs.uml.edu/ecg/uploads/AIfall10/eshahar_rwest_GATetris.pdf).
+
+## Evolutionary AI 
+I have built a computer player that chooses the best move by rating each possible next-state using an evaluation function. The evaluation function is a weighted sum of these values: Filled Spot Count, Weighted Filled Spot Count, Maximum Altitude, Hole Count, Lines Cleared, Deepest Hole and Sum of All Holes. A genetic algorithm finds optimal weights for the function. A genetic algorithm simulates adaptation, mutation, natural selection, reproduction, chromosome crossover, and evolution.
+
+## Other changes
+Each tetris game has an random algorithm implemented for selecting the next tetromino. The original tetris had an unbiased randomizer. No opinion to which piece should come next, just pick one and give it to the player. While an unbiased randomizer offers the greatest pure puzzle challenge to players, it is unstable, and can actually result in an unbeatable sequence. Since the idea of this project is to test the Evolutionary AI, I have implemented a version of the Tetris: The Grand Master 3 - Terror-Instinct (2005) random generator. You can read more about how all tetris random algorithm works in [this link over here](https://simon.lc/the-history-of-tetris-randomizers), but in short, the TGM3 algorithm tries to fix the unbeatable sequence problem, and also allows for many building strategies to be consistently viable, which I would love for the AI to find out by itself.
