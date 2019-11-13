@@ -11,98 +11,35 @@
 #include <vector>
 #include <cstdio>
 #include <cwchar>
-#include "ai.h"
+
+
 #ifndef UNICODE
 #define UNICODE
 #define UNICODE_WAS_UNDEFINED
 #endif
 
 #include <Windows.h>
+#include "ai.h"
+#include "functions.h"
 
 #ifdef UNICODE_WAS_UNDEFINED
 #undef UNICODE
 #endif
 
-using namespace std;
-
-int nScreenWidth = 120;			// Console Screen Size X (columns)
-int nScreenHeight = 50;			// Console Screen Size Y (rows)
-
-wstring tetromino[7];
-int nFieldWidth = 12;
-int nFieldHeight = 18;
+const unsigned int seed = time(0);
+mt19937_64 rng(seed);
 unsigned char *pField = nullptr;
 
-
-int rotate(int px, int py, int r){
-    //Rotation matrix in 1d vector format
-    int pi = 0;
-    switch (r % 4){
-        case 0: //0
-            pi = py * 4 + px;
-            break;
-
-        case 1: //90
-            pi = 12 + py - (px * 4);
-            break;
-
-        case 2: //180
-            pi = 15 - (py * 4) - px;
-            break;
-
-        case 3: //270
-            pi = 3 - py + (px * 4);
-            break;
-    }
-    return pi;
-}
-
-bool collisionCheck(int nTetromino, int nRotation, int nPosX, int nPosY){
-    // All Field cells >0 are occupied
-    for (int px = 0; px < 4; px++)
-        for (int py = 0; py < 4; py++){
-            // Get index into piece
-            int pi = rotate(px, py, nRotation);
-
-            // Get index into field
-            int fi = (nPosY + py) * nFieldWidth + (nPosX + px);
-
-            // Check that test is in bounds.
-            if (nPosX + px >= 0 && nPosX + px < nFieldWidth){
-                if (nPosY + py >= 0 && nPosY + py < nFieldHeight){
-                    // In Bounds so do collision check
-                    if (tetromino[nTetromino][pi] != L'.' && pField[fi] != 0)
-                        return false; // fail on first hit
-                }
-            }
-        }
-
-    return true;
-}
-
-int tgm3Randomizer(vector<int> pool) {
-    const unsigned int seed = time(0);
-    mt19937_64 rng(seed);
-    uniform_int_distribution<int> range(0, 34);
-    int piece;
-    map<int,int> dup;
-
+int bagRandomizer(vector<int> &pool) {
+    uniform_int_distribution<int> range(0, pool.size() - 1);
     // Choose a random tetromino from pool
     int pos=range(rng);
-    piece = pool.at(pos);
-    pool.erase(pool.begin()+pos);
+    int piece = pool.at(pos);
+    pool.erase(pool.begin() + pos);
 
-    // Count how many times each element is repeated in pool
-    for_each( pool.begin(), pool.end(), [&dup]( int val ){ dup[val]++; } );
+    if (pool.empty())
+        pool = {0, 1, 2, 3, 4, 5, 6};
 
-    int mostRepeated=0,blockRepeated=0;
-    for(int i=0;i<7;i++)
-        if(dup.at(i)>mostRepeated){
-            mostRepeated=dup.at(i);
-            blockRepeated=i;// blockRepeated is the most repeated tetromino in pool, so it`s the most droughted piece;
-        }
-
-    pool.push_back(blockRepeated);
     return piece;
 }
 
@@ -110,26 +47,21 @@ int main() {
 
     // Game Logic
     bool bKey[4];
-    int nCurrentPiece = 0;
     int nCurrentRotation = 0;
-    int nCurrentX = nFieldWidth / 2;
+    int nCurrentX = (nFieldWidth / 2) - 2;
     int nCurrentY = 0;
     int nSpeed = 20;
     int nSpeedCount = 0;
     bool bForceDown = false;
     bool bRotateHold = true;
-    int nPieceCount = 0;
     int nScore = 0;
     int nLinesCleared=0;
     vector<int> vLines;
     bool bGameOver = false;
 
-    // Variables for TGM3 Random
-    vector<int> pieces{0,1,2,3,4,5,6};
-    vector<int> pool;
-    for(int i=0;i<5;i++){
-        pool.insert(pool.end(),pieces.begin(),pieces.end());
-    }
+    // Variables for Pool Randomizer
+    vector<int> pool{0, 1, 2, 3, 4, 5, 6};
+    int nCurrentPiece = bagRandomizer(pool);
 
     // Create Screen Buffer
     wchar_t *screen = new wchar_t[nScreenWidth*nScreenHeight];
@@ -150,7 +82,6 @@ int main() {
     for (int x = 0; x < nFieldWidth; x++) // Board Boundary
         for (int y = 0; y < nFieldHeight; y++)
             pField[y*nFieldWidth + x] = (x == 0 || x == nFieldWidth - 1 || y == nFieldHeight - 1) ? 9 : 0;
-
     while(!bGameOver){
         // Timing =======================
         this_thread::sleep_for(50ms); // Small Step = 1 Game Tick
@@ -161,12 +92,17 @@ int main() {
             bKey[k] = (0x8000 & GetAsyncKeyState((unsigned char)("\x27\x25\x28\x26"[k]))) != 0;
         // Game Logic ===================
         // Handle player movement
-        nCurrentX += (bKey[0] && collisionCheck(nCurrentPiece, nCurrentRotation, nCurrentX + 1, nCurrentY)) ? 1 : 0;
-        nCurrentX -= (bKey[1] && collisionCheck(nCurrentPiece, nCurrentRotation, nCurrentX - 1, nCurrentY)) ? 1 : 0;
-        nCurrentY += (bKey[2] && collisionCheck(nCurrentPiece, nCurrentRotation, nCurrentX, nCurrentY + 1)) ? 1 : 0;
+        nCurrentX += (bKey[0] && collisionCheck(nCurrentPiece, nCurrentRotation, nCurrentX + 1, nCurrentY, pField)) ? 1
+                                                                                                                    : 0;
+        nCurrentX -= (bKey[1] && collisionCheck(nCurrentPiece, nCurrentRotation, nCurrentX - 1, nCurrentY, pField)) ? 1
+                                                                                                                    : 0;
+        nCurrentY += (bKey[2] && collisionCheck(nCurrentPiece, nCurrentRotation, nCurrentX, nCurrentY + 1, pField)) ? 1
+                                                                                                                    : 0;
         // rotate, but latch to stop wild spinning
         if (bKey[3]){
-            nCurrentRotation += (bRotateHold && collisionCheck(nCurrentPiece, nCurrentRotation + 1, nCurrentX, nCurrentY)) ? 1 : 0;
+            nCurrentRotation += (bRotateHold &&
+                                 collisionCheck(nCurrentPiece, nCurrentRotation + 1, nCurrentX, nCurrentY, pField)) ? 1
+                                                                                                                    : 0;
             bRotateHold = false;
         }
         else
@@ -175,13 +111,10 @@ int main() {
         if (bForceDown){
             // Update difficulty every 50 pieces
             nSpeedCount = 0;
-            nPieceCount++;
-            if (nPieceCount % 50 == 0)
-                if (nSpeed >= 10) nSpeed--;
 
             // Test if piece can be moved down
-            if (collisionCheck(nCurrentPiece, nCurrentRotation, nCurrentX, nCurrentY + 1))
-                nCurrentY++; //
+            if (collisionCheck(nCurrentPiece, nCurrentRotation, nCurrentX, nCurrentY + 1, pField))
+                nCurrentY++;
             else{
                 // lock the piece in place
                 for (int px = 0; px < 4; px++)
@@ -207,13 +140,13 @@ int main() {
                     nLinesCleared += vLines.size();
                 }
                 // Pick New Piece
-                nCurrentX = nFieldWidth / 2;
+                nCurrentX = (nFieldWidth / 2) - 2;
                 nCurrentY = 0;
                 nCurrentRotation = 0;
-                nCurrentPiece = tgm3Randomizer(pool);
+                nCurrentPiece = bagRandomizer(pool);
 
                 // If piece does not fit straight away, game over!
-                bGameOver = !collisionCheck(nCurrentPiece, nCurrentRotation, nCurrentX, nCurrentY);
+                bGameOver = !collisionCheck(nCurrentPiece, nCurrentRotation, nCurrentX, nCurrentY, pField);
             }
         }
         // Display ======================

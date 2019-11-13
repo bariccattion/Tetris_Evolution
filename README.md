@@ -1,4 +1,4 @@
-# GBTetris-AI
+# Tetris Evolution
 A Tetris in C++ for terminal, but with an Evolutionary AI implemented. All genes and values were choosen based on [this paper](http://www.cs.uml.edu/ecg/uploads/AIfall10/eshahar_rwest_GATetris.pdf).
 
 ## Evolutionary AI 

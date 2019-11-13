@@ -63,3 +63,28 @@ int sumOfAllHoles(const unsigned char *pField, int nFieldWidth, int nFieldHeight
     }
     return sumOfAllHoles;
 }
+
+vector<int> getAllPossibleMoves(unsigned char *pField, int nCurrentX, int nCurrentY, int score, int nLinesCleared,
+                                int nCurrentPiece) {
+    unsigned char *pFieldCopy = (unsigned char *) malloc(12 * 18);
+    memcpy(pFieldCopy, pField, 12 * 18);
+    int nCurrentRotation = 0;
+
+    // Each position
+    for (int position = -5; position < 5; position++) {
+        //Do stuff before moving
+
+        // Test if piece can be moved
+        nCurrentX += (collisionCheck(nCurrentPiece, nCurrentRotation, nCurrentX + 1, nCurrentY, pFieldCopy)) ? 1 : 0;
+
+        // Each rotation
+        for (int rotation = 0; rotation < 4; rotation++) {
+            //Do stuff before rotating
+
+
+            // Test if piece can be rotated
+            nCurrentRotation += (collisionCheck(nCurrentPiece, nCurrentRotation + 1, nCurrentX, nCurrentY, pFieldCopy))
+                                ? 1 : 0;
+        }
+    }
+}
