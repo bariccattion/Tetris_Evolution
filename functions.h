@@ -20,8 +20,7 @@ int nFieldHeight = 18;
 wstring tetromino[7];
 
 int rotate(int px, int py, int r);
-
 bool collisionCheck(int nTetromino, int nRotation, int nPosX, int nPosY, unsigned char *pField);
-
+bool gameOverCheck(const unsigned char *pField, int currentFigure);
 
 #endif //TETRIS_EVOLUTION_FUNCTIONS_H

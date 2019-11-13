@@ -49,3 +49,13 @@ bool collisionCheck(int nTetromino, int nRotation, int nPosX, int nPosY, const u
 
     return true;
 }
+
+bool gameOverCheck(const unsigned char *pFieldRef, int currentFigure) {
+    int nCurrentX = (nFieldWidth / 2) - 2;
+    int nCurrentY = 0;
+    int nCurrentRotation = 0;
+
+    // If piece does not fit straight away, game over!
+    bool bGameOver = !collisionCheck(currentFigure, nCurrentRotation, nCurrentX, nCurrentY, pFieldRef);
+    return bGameOver;
+}

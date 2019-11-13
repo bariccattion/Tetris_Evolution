@@ -4,8 +4,6 @@
 #include <iostream>
 #include <list>
 #include <map>
-#include <random>
-#include <ctime>
 #include <algorithm>
 #include <thread>
 #include <vector>
@@ -26,8 +24,6 @@
 #undef UNICODE
 #endif
 
-const unsigned int seed = time(0);
-mt19937_64 rng(seed);
 unsigned char *pField = nullptr;
 
 int bagRandomizer(vector<int> &pool) {
@@ -92,17 +88,13 @@ int main() {
             bKey[k] = (0x8000 & GetAsyncKeyState((unsigned char)("\x27\x25\x28\x26"[k]))) != 0;
         // Game Logic ===================
         // Handle player movement
-        nCurrentX += (bKey[0] && collisionCheck(nCurrentPiece, nCurrentRotation, nCurrentX + 1, nCurrentY, pField)) ? 1
-                                                                                                                    : 0;
-        nCurrentX -= (bKey[1] && collisionCheck(nCurrentPiece, nCurrentRotation, nCurrentX - 1, nCurrentY, pField)) ? 1
-                                                                                                                    : 0;
-        nCurrentY += (bKey[2] && collisionCheck(nCurrentPiece, nCurrentRotation, nCurrentX, nCurrentY + 1, pField)) ? 1
-                                                                                                                    : 0;
+        nCurrentX += (bKey[0] && collisionCheck(nCurrentPiece, nCurrentRotation, nCurrentX + 1, nCurrentY, pField)) ? 1 : 0;
+        nCurrentX -= (bKey[1] && collisionCheck(nCurrentPiece, nCurrentRotation, nCurrentX - 1, nCurrentY, pField)) ? 1 : 0;
+        nCurrentY += (bKey[2] && collisionCheck(nCurrentPiece, nCurrentRotation, nCurrentX, nCurrentY + 1, pField)) ? 1 : 0;
         // rotate, but latch to stop wild spinning
         if (bKey[3]){
             nCurrentRotation += (bRotateHold &&
-                                 collisionCheck(nCurrentPiece, nCurrentRotation + 1, nCurrentX, nCurrentY, pField)) ? 1
-                                                                                                                    : 0;
+                                 collisionCheck(nCurrentPiece, nCurrentRotation + 1, nCurrentX, nCurrentY, pField)) ? 1 : 0;
             bRotateHold = false;
         }
         else
@@ -162,13 +154,13 @@ int main() {
         // Draw Score
         swprintf(&screen[2 * nScreenWidth + nFieldWidth + 6], 16, L"SCORE: %8d", nScore);
         // Draw AI Stuff
-        swprintf(&screen[3 * nScreenWidth + nFieldWidth + 6], 30, L"FILLED SPOT COUNT: %8d", filledSpotCount(pField,nFieldWidth,nFieldHeight));
-        swprintf(&screen[4 * nScreenWidth + nFieldWidth + 6], 40, L"WEIGHTED FILLED SPOT COUNT: %8d", weightedFilledSpotCount(pField,nFieldWidth,nFieldHeight));
-        swprintf(&screen[5 * nScreenWidth + nFieldWidth + 6], 40, L"MAXIMUM ALTITUDE: %8d", maximumAltitude(pField,nFieldWidth,nFieldHeight));
-        swprintf(&screen[6 * nScreenWidth + nFieldWidth + 6], 40, L"HOLE COUNT: %8d", holeCount(pField,nFieldWidth,nFieldHeight));
+        swprintf(&screen[3 * nScreenWidth + nFieldWidth + 6], 30, L"FILLED SPOT COUNT: %8d", filledSpotCount(pField));
+        swprintf(&screen[4 * nScreenWidth + nFieldWidth + 6], 40, L"WEIGHTED FILLED SPOT COUNT: %8d", weightedFilledSpotCount(pField));
+        swprintf(&screen[5 * nScreenWidth + nFieldWidth + 6], 40, L"MAXIMUM ALTITUDE: %8d", maximumAltitude(pField));
+        swprintf(&screen[6 * nScreenWidth + nFieldWidth + 6], 40, L"HOLE COUNT: %8d", holeCount(pField));
         swprintf(&screen[7 * nScreenWidth + nFieldWidth + 6], 30, L"LINES CLEARED: %8d", nLinesCleared);
-        swprintf(&screen[8 * nScreenWidth + nFieldWidth + 6], 30, L"DEEPEST HOLE: %8d", deepestHole(pField,nFieldWidth,nFieldHeight));
-        swprintf(&screen[9 * nScreenWidth + nFieldWidth + 6], 30, L"SUM OF ALL HOLES: %8d", sumOfAllHoles(pField,nFieldWidth,nFieldHeight));
+        swprintf(&screen[8 * nScreenWidth + nFieldWidth + 6], 30, L"DEEPEST HOLE: %8d", deepestHole(pField));
+        swprintf(&screen[9 * nScreenWidth + nFieldWidth + 6], 30, L"SUM OF ALL HOLES: %8d", sumOfAllHoles(pField));
         // Clear line
         if (!vLines.empty()){
             for (auto &v : vLines)
