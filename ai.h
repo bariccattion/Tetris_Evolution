@@ -5,21 +5,15 @@ using namespace std;
 
 #ifndef TETRIS_EVOLUTION_AI_H
 #define TETRIS_EVOLUTION_AI_H
-
+#include <float.h>
 #include <iostream>
 #include <cstdio>
 #include <vector>
 #include <random>
 #include <ctime>
+#include <cmath>
 
 #include "functions.h"
-
-const unsigned int seed = time(0);
-mt19937_64 rng(seed);
-
-int populationSize = 10;
-int currentGenome = 0;
-int generation=0;
 
 class Scores {
 public:
@@ -34,15 +28,14 @@ public:
 class Genome {
 public:
     int id;
-    int filledSpotCount;
-    int weightedFilledSpotCount;
-    int maximumAltitude;
-    int holeCount;
-    int deepestHole;
-    int sumOfAllHoles;
+    double fitness;
+    double filledSpotCount;
+    double weightedFilledSpotCount;
+    double maximumAltitude;
+    double holeCount;
+    double deepestHole;
+    double sumOfAllHoles;
 };
-vector<Genome> genomes;
-
 class PossibleMoves {
 public:
     int rotation;
@@ -51,8 +44,12 @@ public:
     Scores scores;
 };
 
-
-
+vector <PossibleMoves> getAllPossibleMoves(unsigned char *pField, int nCurrentX, int nCurrentY, int nCurrentPiece);
+void createInitialPopulation(unsigned char *pField, int &nCurrentX, int &nCurrentY, int nCurrentPiece, int nScore);
+void makeNextMove(unsigned char *pField, int &nCurrentX, int &nCurrentY, int nCurrentPiece, int nScore);
+void evaluateNextGenome(unsigned char *pField, int &nCurrentX, int &nCurrentY, int nCurrentPiece, int nScore);
+Genome makeChild(Genome mum, Genome dad);
+void evolve();
 int filledSpotCount(const unsigned char *pField);
 int weightedFilledSpotCount(const unsigned char *pField);
 int maximumAltitude(const unsigned char *pField);
