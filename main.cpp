@@ -24,15 +24,10 @@
 #undef UNICODE
 #endif
 
-extern int currentGenome;
-extern vector<Genome> genomes;
 
 int main() {
-    int SCREENHEIGHT = 50;
-    int SCREENWIDTH = 120;
-
     // Game Logic
-    bool bKey[4];
+    bool bKey[5];
     int nCurrentRotation = 0;
     int nCurrentX = (nFieldWidth / 2) - 2;
     int nCurrentY = 0;
@@ -40,23 +35,20 @@ int main() {
     int nSpeedCount = 0;
     bool bForceDown = false;
     bool bRotateHold = true;
-    int nLinesCleared=0;
     vector<int> vLines;
-    int nScore;
-    bool bGameOver = false;
+    int nScore=0;
 
     // Variables for Pool Randomizer
     vector<int> pool{0, 1, 2, 3, 4, 5, 6};
     int nCurrentPiece = bagRandomizer(pool);
 
     // Create Screen Buffer
-    wchar_t *screen = new wchar_t[SCREENWIDTH*SCREENHEIGHT];
+
     for (int i = 0; i < SCREENWIDTH * SCREENHEIGHT; i++) screen[i] = ' ';
     HANDLE hConsole = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
     SetConsoleActiveScreenBuffer(hConsole);
     DWORD dwBytesWritten = 0;
 
-    wstring tetromino[7];
     tetromino[0].append(L"..X...X...X...X."); // I
     tetromino[1].append(L"..X..XX...X....."); // T
     tetromino[2].append(L".....XX..XX....."); // O
@@ -72,16 +64,16 @@ int main() {
             pFieldLocal[y * nFieldWidth + x] = (x == 0 || x == nFieldWidth - 1 || y == nFieldHeight - 1) ? 9 : 0;
 
     //AI
-    createInitialPopulation(pFieldLocal,nCurrentX,nCurrentY,nCurrentPiece,nScore);
+    createInitialPopulation(pFieldLocal,nCurrentX,nCurrentY,nCurrentRotation,nCurrentPiece,nScore);
 
-    while(!bGameOver){
+    while(true){
         // Timing =======================
-        this_thread::sleep_for(50ms); // Small Step = 1 Game Tick
+        //this_thread::sleep_for(1ms); // Small Step = 1 Game Tick
         nSpeedCount++;
         bForceDown = (nSpeedCount == nSpeed);
         // Input ========================
-        for (int k = 0; k < 4; k++)
-            bKey[k] = (0x8000 & GetAsyncKeyState((unsigned char)("\x27\x25\x28\x26"[k]))) != 0;
+        for (int k = 0; k < 5; k++)
+            bKey[k] = (0x8000 & GetAsyncKeyState((unsigned char)("\x27\x25\x28\x26\xA0"[k]))) != 0;
         // Game Logic ===================
         // Handle player movement
         nCurrentX += (bKey[0] && collisionCheck(nCurrentPiece, nCurrentRotation, nCurrentX + 1, nCurrentY, pFieldLocal)) ? 1 : 0;
@@ -136,10 +128,28 @@ int main() {
                 bGameOver = !collisionCheck(nCurrentPiece, nCurrentRotation, nCurrentX, nCurrentY, pFieldLocal);
                 if(bGameOver){
                     genomes.at(currentGenome).fitness=nScore;
-                    evaluateNextGenome(pFieldLocal,nCurrentX,nCurrentY,nCurrentPiece,nScore);
+
+                    pFieldLocal = new unsigned char[nFieldWidth * nFieldHeight]; // Create play field buffer
+                    for (int x = 0; x < nFieldWidth; x++) // Board Boundary
+                        for (int y = 0; y < nFieldHeight; y++)
+                            pFieldLocal[y * nFieldWidth + x] = (x == 0 || x == nFieldWidth - 1 || y == nFieldHeight - 1) ? 9 : 0;
+
+                    nCurrentRotation = 0;
+                    nCurrentX = (nFieldWidth / 2) - 2;
+                    nCurrentY = 0;
+                    nSpeed = 20;
+                    nSpeedCount = 0;
+                    bForceDown = false;
+                    bRotateHold = true;
+                    nLinesCleared=0;
+                    vLines.clear();
+                    nScore=0;
+
+                    //currentGenome++;
+                    evaluateNextGenome(pFieldLocal,nCurrentX,nCurrentY,nCurrentRotation,nCurrentPiece,nScore);
                 }
                 else{
-                    makeNextMove(pFieldLocal,nCurrentX,nCurrentY,nCurrentPiece,nScore);
+                    makeNextMove(pFieldLocal,nCurrentX,nCurrentY,nCurrentRotation,nCurrentPiece,nScore);
                 }
             }
         }
@@ -163,6 +173,13 @@ int main() {
         swprintf(&screen[7 * SCREENWIDTH + nFieldWidth + 6], 30, L"LINES CLEARED: %8d", nLinesCleared);
         swprintf(&screen[8 * SCREENWIDTH + nFieldWidth + 6], 30, L"DEEPEST HOLE: %8d", deepestHole(pFieldLocal));
         swprintf(&screen[9 * SCREENWIDTH + nFieldWidth + 6], 30, L"SUM OF ALL HOLES: %8d", sumOfAllHoles(pFieldLocal));
+        swprintf(&screen[10 * SCREENWIDTH + nFieldWidth + 6], 30, L"ROW TRANSITIONS: %8d", rowTransitions(pFieldLocal));
+        swprintf(&screen[11 * SCREENWIDTH + nFieldWidth + 6], 30, L"Y PIECE POS: %8d", (nCurrentY +  2));
+        swprintf(&screen[11 * SCREENWIDTH + nFieldWidth + 6], 30, L"AGGREGATE HEIGHT: %8d", aggregateHeight(pFieldLocal));
+        swprintf(&screen[(nFieldHeight + 2) * SCREENWIDTH +  2], 30, L"GENERATION: %8d", generation);
+        swprintf(&screen[(nFieldHeight + 3) * SCREENWIDTH +  2], 30, L"CURRENT GENOME: %8d", currentGenome);
+        swprintf(&screen[(nFieldHeight + 4) * SCREENWIDTH +  2], 60, L"MOVES LEFT TO EVALUATE NEXT GENOME: %8d", 500-movesTaken);
+
         // Clear line
         if (!vLines.empty()){
             for (auto &v : vLines)
@@ -175,7 +192,8 @@ int main() {
             vLines.clear();
         }
         // Display Frame
-        WriteConsoleOutputCharacter(hConsole, (screen), SCREENWIDTH * SCREENHEIGHT, {0, 0 }, &dwBytesWritten);
+        if(bKey[4])
+            WriteConsoleOutputCharacter(hConsole, (screen), SCREENWIDTH * SCREENHEIGHT, {0, 0 }, &dwBytesWritten);
     }
     CloseHandle(hConsole);
     cout << "Game Over!! Score:" << nScore << endl;

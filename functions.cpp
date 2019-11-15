@@ -45,16 +45,6 @@ int rotate(int px, int py, int r) {
 }
 
 bool collisionCheck(int nTetromino, int nRotation, int nPosX, int nPosY, const unsigned char *pField) {
-
-    wstring tetromino[7];
-    tetromino[0].append(L"..X...X...X...X."); // I
-    tetromino[1].append(L"..X..XX...X....."); // T
-    tetromino[2].append(L".....XX..XX....."); // O
-    tetromino[3].append(L"..X..XX..X......"); // S
-    tetromino[4].append(L".X...XX...X....."); // Z
-    tetromino[5].append(L".X...X...XX....."); // J
-    tetromino[6].append(L"..X...X..XX....."); // L
-
     // All Field cells >0 are occupied
     for (int px = 0; px < 4; px++)
         for (int py = 0; py < 4; py++) {
@@ -70,7 +60,13 @@ bool collisionCheck(int nTetromino, int nRotation, int nPosX, int nPosY, const u
                     // In Bounds so do collision check
                     if (tetromino[nTetromino][pi] != L'.' && pField[fi] != 0)
                         return false; // fail on first hit
+                }else{
+                    // Out of bounds?
+                    return false;
                 }
+            }else{
+                // Out of bounds?
+                return false;
             }
         }
 
@@ -87,22 +83,3 @@ bool gameOverCheck(const unsigned char *pFieldRef, int currentFigure) {
     return bGameOver;
 }
 
-
-void resetGame() {
-
-    int nCurrentRotation = 0;
-    int nCurrentX = (nFieldWidth / 2) - 2;
-    int nCurrentY = 0;
-    int nSpeed = 20;
-    int nSpeedCount = 0;
-    bool bForceDown = false;
-    bool bRotateHold = true;
-    int nLinesCleared=0;
-    std::vector<int> vLines;
-    bool bGameOver = false;
-
-    /*pFieldLocal = new unsigned char[nFieldWidth * nFieldHeight]; // Create play field buffer
-    for (int x = 0; x < nFieldWidth; x++) // Board Boundary
-        for (int y = 0; y < nFieldHeight; y++)
-            pFieldLocal[y * nFieldWidth + x] = (x == 0 || x == nFieldWidth - 1 || y == nFieldHeight - 1) ? 9 : 0;*/
-}

@@ -14,15 +14,19 @@ using namespace std;
 
 #include "functions.h"
 
+inline wstring tetromino[7];
+inline int SCREENHEIGHT = 50;
+inline int SCREENWIDTH = 60;
 inline int const nFieldWidth=12;
 inline int const nFieldHeight=18;
-
+inline int nLinesCleared=0;
+inline bool bGameOver = false;
+inline wchar_t *screen = new wchar_t[SCREENWIDTH*SCREENHEIGHT];
 
 int bagRandomizer(vector<int> &pool);
 int rotate(int px, int py, int r);
 bool collisionCheck(int nTetromino, int nRotation, int nPosX, int nPosY, const unsigned char *pField);
 bool gameOverCheck(const unsigned char *pField, int currentFigure);
-void resetGame();
 
 
 #endif //TETRIS_EVOLUTION_FUNCTIONS_H
