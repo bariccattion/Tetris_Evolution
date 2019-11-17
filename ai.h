@@ -12,6 +12,7 @@ using namespace std;
 #include <random>
 #include <ctime>
 #include <cmath>
+#include <algorithm>
 
 #include "functions.h"
 
@@ -21,33 +22,38 @@ public:
     int weightedFilledSpotCount;
     int maximumAltitude;
     int holeCount;
-    int deepestHole;
-    int sumOfAllHoles;
+    int connectedHolesCount;
+    int maximumWellDepth;
+    //int deepestHole;
+    //int sumOfAllHoles;
     int nLinesCleared;
     int rowTransitions;
-    int aggregateHeight;
-    int yPiecePos;
+    //int aggregateHeight;
+    //int yPiecePos;
 };
 
 class Genome {
 public:
     int id;
-    int fitness;
+    double fitness;
     double filledSpotCount;
     double weightedFilledSpotCount;
     double maximumAltitude;
     double holeCount;
-    double deepestHole;
-    double sumOfAllHoles;
+    double connectedHolesCount;
+    double maximumWellDepth;
+    //double deepestHole;
+    //double sumOfAllHoles;
     double nLinesCleared;
     double rowTransitions;
-    double aggregateHeight;
-    double yPiecePos;
+    //double aggregateHeight;
+    //double yPiecePos;
 };
 class PossibleMoves {
 public:
     int rotation;
     int xPos;
+    int yPos;
     double rating;
     Scores scores;
 };
@@ -55,6 +61,10 @@ public:
 inline int movesTaken = 0;
 inline int currentGenome = 0;
 inline int generation=0;
+inline int populationSize = 250;
+inline int nTimesPlayed=0;
+inline int maxTimePlayed=5;
+inline int nTetrominoPlaced = 0;
 inline vector<Genome> genomes;
 inline vector<Genome> noble;
 
@@ -65,6 +75,8 @@ void evaluateNextGenome(unsigned char *pField, int &nCurrentX, int &nCurrentY, i
 Genome makeChild(Genome mum, Genome dad);
 void evolve();
 
+int maximumWellDepth(const unsigned char *pField);
+int connectedHolesCount(const unsigned char *pField);
 int aggregateHeight(const unsigned char *pField);
 int rowTransitions(const unsigned char *pField);
 int filledSpotCount(const unsigned char *pField);
