@@ -64,15 +64,14 @@ inline int generation=0;
 inline int populationSize = 250;
 inline int nTimesPlayed=0;
 inline int maxTimePlayed=5;
-inline int nTetrominoPlaced = 0;
 inline vector<Genome> genomes;
 inline vector<Genome> noble;
 
 vector <PossibleMoves> getAllPossibleMoves(unsigned char *pField, int nCurrentX, int nCurrentY, int nCurrentRotation, int nCurrentPiece);
 void createInitialPopulation(unsigned char *pField, int &nCurrentX, int &nCurrentY, int &nCurrentRotation, int nCurrentPiece, int nScore);
 void makeNextMove(unsigned char *pField, int &nCurrentX, int &nCurrentY, int &nCurrentRotation, int nCurrentPiece, int nScore);
-void evaluateNextGenome(unsigned char *pField, int &nCurrentX, int &nCurrentY, int &nCurrentRotation, int nCurrentPiece, int nScore);
-Genome makeChild(Genome mum, Genome dad);
+void evaluateNext(unsigned char *pField, int &nCurrentX, int &nCurrentY, int &nCurrentRotation, int nCurrentPiece, int nScore);
+Genome makeChild(Genome &mum, Genome &dad);
 void evolve();
 
 int maximumWellDepth(const unsigned char *pField);

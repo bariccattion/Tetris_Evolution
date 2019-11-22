@@ -3,6 +3,9 @@
 //
 
 #include "ai.h"
+#include "wchar.h"
+#include <string.h>
+#include <cwchar>
 
 const unsigned int seed = time(0);
 mt19937_64 rng(seed);
@@ -126,7 +129,9 @@ int aggregateHeight(const unsigned char *pField) {
 }
 
 vector <PossibleMoves> getAllPossibleMoves(unsigned char *pField, int nCurrentX, int nCurrentY, int nCurrentRotation,  int nCurrentPiece) {
-    unsigned char *pFieldCopy = (unsigned char *) malloc(12 * 18);
+    unsigned char *pFieldCopy = nullptr;
+    pFieldCopy = new unsigned char[nFieldWidth * nFieldHeight];
+
     memcpy(pFieldCopy, pField, 12 * 18);
     vector<PossibleMoves> vectorPossibleMoves;
     int oldCurrentY=nCurrentY,oldCurrentX=nCurrentX,oldRotation=nCurrentRotation;
@@ -172,11 +177,11 @@ vector <PossibleMoves> getAllPossibleMoves(unsigned char *pField, int nCurrentX,
                             break;
                         }
                 }
-                //Do stuff before rotating
-                // Move piece to the bottom of the field
-                if (!failXMove && !failRotation) {
+                if (!failXMove) {
+                    // Move piece to the bottom of the field
                     while (collisionCheck(nCurrentPiece, nCurrentRotation, nCurrentX, nCurrentY + 1, pFieldCopy))
                         nCurrentY++;
+
                     // Lock the piece in place
                     for (int px = 0; px < 4; px++)
                         for (int py = 0; py < 4; py++)
@@ -227,6 +232,7 @@ vector <PossibleMoves> getAllPossibleMoves(unsigned char *pField, int nCurrentX,
             }
         }
     }
+    delete[] pFieldCopy;
     return vectorPossibleMoves;
 }
 
@@ -255,30 +261,34 @@ void createInitialPopulation(unsigned char *pField, int &nCurrentX, int &nCurren
 //        thisGenome.aggregateHeight=range(rng);
         genomes.push_back(thisGenome);
     }
-    evaluateNextGenome(pField,nCurrentX,nCurrentY,nCurrentRotation,nCurrentPiece,nScore);
+    evaluateNext(pField, nCurrentX, nCurrentY, nCurrentRotation, nCurrentPiece, nScore);
 }
 
 void makeNextMove(unsigned char *pField, int &nCurrentX, int &nCurrentY, int &nCurrentRotation,  int nCurrentPiece, int nScore) {
     movesTaken++;
-        //get all the possible moves
-        double highestRating=-DBL_MAX,highestMove=0;
-        vector<PossibleMoves> possibleMoves = getAllPossibleMoves(pField,nCurrentX,nCurrentY,nCurrentRotation,nCurrentPiece);
-        for (int i = 0; i < possibleMoves.size(); i++) {
-            if(possibleMoves.at(i).rating>highestRating) {
-                highestRating = possibleMoves.at(i).rating;
-                highestMove=i;
-            }
+    double highestRating=-DBL_MAX,highestMove=0;
+    // Get all the possible moves
+    vector<PossibleMoves> possibleMoves = getAllPossibleMoves(pField,nCurrentX,nCurrentY,nCurrentRotation,nCurrentPiece);
+
+    // Get best move rated by this genome
+    for (int i = 0; i < possibleMoves.size(); i++) {
+        if(possibleMoves.at(i).rating>highestRating) {
+            highestRating = possibleMoves.at(i).rating;
+            highestMove=i;
         }
-        PossibleMoves bestMove = possibleMoves.at(highestMove);
-        nCurrentRotation=bestMove.rotation;
-        nCurrentX=bestMove.xPos;
-        nCurrentY=bestMove.yPos;
+    }
+
+    // Do move
+    PossibleMoves bestMove = possibleMoves.at(highestMove);
+    nCurrentRotation=bestMove.rotation;
+    nCurrentX=bestMove.xPos;
+    nCurrentY=bestMove.yPos;
 }
 
-void evaluateNextGenome(unsigned char *pField, int &nCurrentX, int &nCurrentY, int &nCurrentRotation, int nCurrentPiece, int nScore) {
+void evaluateNext(unsigned char *pField, int &nCurrentX, int &nCurrentY, int &nCurrentRotation, int nCurrentPiece, int nScore) {
     nTimesPlayed++;
-    genomes.at(currentGenome).fitness+=nScore;
-    // Increment index in genome array
+    genomes.at(currentGenome).fitness+=movesTaken;
+
     if(nTimesPlayed == maxTimePlayed){
         genomes.at(currentGenome).fitness/=nTimesPlayed;
         nTimesPlayed=0;
@@ -286,7 +296,6 @@ void evaluateNextGenome(unsigned char *pField, int &nCurrentX, int &nCurrentY, i
         if (currentGenome == genomes.size())
             evolve();
     }
-    swprintf(&screen[(nFieldHeight + 10) * SCREENWIDTH +  2], 50, L"GENOMES SIZE: %8d", genomes.size());
     // Reset moves taken
     movesTaken = 0;
     // And make the next move
@@ -297,6 +306,7 @@ void evolve() {
     currentGenome = 0;
     generation++;
     bGameOver=true;
+
     // Sort genomes by fitness
     for (int i = 0; i < genomes.size()-1; i++)
         for (int j = 0; j < genomes.size()-i-1; j++)
@@ -305,6 +315,7 @@ void evolve() {
                 genomes.at(j) = genomes.at(j+1);
                 genomes.at(j+1) = temp;
             }
+
    // Add a copy of the fittest genome to the nobles list and sort it
    noble.push_back(genomes.at(0));
    if(noble.size()>1){
@@ -316,35 +327,38 @@ void evolve() {
                     noble.at(j) = noble.at(j+1);
                     noble.at(j+1) = temp;
                 }
+   }
+   if(noble.size()>5)
        noble.pop_back();
-    }
+
 
     // Kill the worst of the population
     while(genomes.size() > populationSize/2)
         genomes.pop_back();
 
-    //create children array
+    // Create children array
     vector<Genome> children;
-    //add the fittest genome to array
-    children.push_back(genomes.at(0));
-    //add population sized amount of children
     uniform_int_distribution<int> rangeChild(0, genomes.size()-1);
-    for(int i=0;i<populationSize/2;i++) {
-        int pos1=rangeChild(rng),pos2=rangeChild(rng);
-        children.push_back(makeChild(genomes.at(pos1), genomes.at(pos2)));
-        //children.push_back(makeChild(genomes.at(rangeChild(rng)), genomes.at(0)));
+
+    for(int i=0;i<populationSize/4;i++) {
+        children.push_back(makeChild(genomes.at(rangeChild(rng)), genomes.at(rangeChild(rng))));
+        children.push_back(makeChild(genomes.at(rangeChild(rng)), genomes.at(0)));
     }
 
+    // Add nobles to genomes array
+    for(Genome n : noble){
+        n.fitness=-1;
+        genomes.pop_back();
+        genomes.push_back(n);
+    }
+
+    // Add children to genomes array
     for(Genome child : children)
         genomes.push_back(child);
 
-    //genomes.insert(genomes.end(), children.begin(), children.end());
-    genomes.pop_back();
-    genomes.push_back(noble.at(0));
 }
 
-Genome makeChild(Genome mum, Genome dad) {
-    // Init the child given two genomes (its 7 parameters + initial fitness value)
+Genome makeChild(Genome &mum, Genome &dad) {
     const unsigned int seed = time(0);
     mt19937_64 rng(seed);
     uniform_real_distribution<double> rangeCrossingOver(0, 1);
@@ -354,6 +368,7 @@ Genome makeChild(Genome mum, Genome dad) {
     double choice;
     int choiceRound;
 
+    // Weighted
     child.maximumAltitude=((mum.fitness)/((mum.fitness)+(dad.fitness)))*mum.maximumAltitude + ((dad.fitness)/((mum.fitness)+(dad.fitness)))*dad.maximumAltitude;
     child.holeCount=((mum.fitness)/((mum.fitness)+(dad.fitness)))*mum.holeCount + ((dad.fitness)/((mum.fitness)+(dad.fitness)))*dad.holeCount;
     child.connectedHolesCount=((mum.fitness)/((mum.fitness)+(dad.fitness)))*mum.connectedHolesCount + ((dad.fitness)/((mum.fitness)+(dad.fitness)))*dad.connectedHolesCount;
@@ -367,26 +382,6 @@ Genome makeChild(Genome mum, Genome dad) {
     child.filledSpotCount=((mum.fitness)/((mum.fitness)+(dad.fitness)))*mum.filledSpotCount + ((dad.fitness)/((mum.fitness)+(dad.fitness)))*dad.filledSpotCount;
     //child.sumOfAllHoles=((mum.fitness)/((mum.fitness)+(dad.fitness)))*mum.sumOfAllHoles + ((dad.fitness)/((mum.fitness)+(dad.fitness)))*dad.sumOfAllHoles;
 
-    choice=rangeCrossingOver(rng);choiceRound=round(choice);
-    choiceRound ? child.filledSpotCount=mum.filledSpotCount : child.filledSpotCount=dad.filledSpotCount;
-    //choice=rangeCrossingOver(rng);choiceRound=round(choice);
-    //choiceRound ? child.sumOfAllHoles=mum.sumOfAllHoles : child.sumOfAllHoles=dad.sumOfAllHoles;
-    //choice=rangeCrossingOver(rng);choiceRound=round(choice);
-    //choiceRound ? child.deepestHole=mum.deepestHole : child.deepestHole=dad.deepestHole;
-//    choice=rangeCrossingOver(rng);choiceRound=round(choice);
-//    choiceRound ? child.maximumAltitude=mum.maximumAltitude : child.maximumAltitude=dad.maximumAltitude;
-    choice=rangeCrossingOver(rng);choiceRound=round(choice);
-    choiceRound ? child.weightedFilledSpotCount=mum.weightedFilledSpotCount : child.weightedFilledSpotCount=dad.weightedFilledSpotCount;
-    choice=rangeCrossingOver(rng);choiceRound=round(choice);
-    choiceRound ? child.nLinesCleared=mum.nLinesCleared : child.nLinesCleared=dad.nLinesCleared;
-//    choice=rangeCrossingOver(rng);choiceRound=round(choice);
-//    choiceRound ? child.holeCount=mum.holeCount : child.holeCount=dad.holeCount;
-    choice=rangeCrossingOver(rng);choiceRound=round(choice);
-    choiceRound ? child.rowTransitions=mum.rowTransitions : child.rowTransitions=dad.rowTransitions;
-//    choice=rangeCrossingOver(rng);choiceRound=round(choice);
-//    choiceRound ? child.yPiecePos=mum.yPiecePos : child.yPiecePos=dad.yPiecePos;
-//    choice=rangeCrossingOver(rng);choiceRound=round(choice);
-//    choiceRound ? child.aggregateHeight=mum.aggregateHeight : child.aggregateHeight=dad.aggregateHeight;
     child.fitness=-1;
 
     // We mutate each parameter using our mutationstep
@@ -406,30 +401,22 @@ Genome makeChild(Genome mum, Genome dad) {
         choice=rangeCrossingOver(rng);choiceRound=round(choice);
         choiceRound ? child.maximumWellDepth+=rangeAjustment(rng) : child.maximumWellDepth-=rangeAjustment(rng);
     }
-//    if (rangeCrossingOver(rng) < mutationRate) {
-//        choice=rangeCrossingOver(rng);choiceRound=round(choice);
-//        choiceRound ? child.yPiecePos+=rangeAjustment(rng) : child.yPiecePos-=rangeAjustment(rng);
-//    }
-//    if (rangeCrossingOver(rng) < mutationRate) {
-//        choice=rangeCrossingOver(rng);choiceRound=round(choice);
-//        choiceRound ? child.aggregateHeight+=rangeAjustment(rng) : child.aggregateHeight-=rangeAjustment(rng);
-//    }
-    //if (rangeCrossingOver(rng) < mutationRate) {
-        //choice=rangeCrossingOver(rng);choiceRound=round(choice);
-        //choiceRound ? child.deepestHole+=rangeAjustment(rng) : child.deepestHole-=rangeAjustment(rng);
-    //}
-//    if (rangeCrossingOver(rng) < mutationRate) {
-//        choice=rangeCrossingOver(rng);choiceRound=round(choice);
-//        choiceRound ? child.weightedFilledSpotCount+=rangeAjustment(rng) : child.weightedFilledSpotCount-=rangeAjustment(rng);
-//    }
-//    if (rangeCrossingOver(rng) < mutationRate) {
-//        choice=rangeCrossingOver(rng);choiceRound=round(choice);
-//        choiceRound ? child.filledSpotCount+=rangeAjustment(rng) : child.filledSpotCount-=rangeAjustment(rng);
-//    }
-//    if (rangeCrossingOver(rng) < mutationRate) {
-//        choice=rangeCrossingOver(rng);choiceRound=round(choice);
-//        choiceRound ? child.sumOfAllHoles+=rangeAjustment(rng) : child.sumOfAllHoles-=rangeAjustment(rng);
-//    }
+    if (rangeCrossingOver(rng) < mutationRate) {
+        choice=rangeCrossingOver(rng);choiceRound=round(choice);
+        choiceRound ? child.nLinesCleared+=rangeAjustment(rng) : child.nLinesCleared-=rangeAjustment(rng);
+    }
+    if (rangeCrossingOver(rng) < mutationRate) {
+        choice=rangeCrossingOver(rng);choiceRound=round(choice);
+        choiceRound ? child.weightedFilledSpotCount+=rangeAjustment(rng) : child.weightedFilledSpotCount-=rangeAjustment(rng);
+    }
+    if (rangeCrossingOver(rng) < mutationRate) {
+        choice=rangeCrossingOver(rng);choiceRound=round(choice);
+        choiceRound ? child.filledSpotCount+=rangeAjustment(rng) : child.filledSpotCount-=rangeAjustment(rng);
+    }
+    if (rangeCrossingOver(rng) < mutationRate) {
+        choice=rangeCrossingOver(rng);choiceRound=round(choice);
+        choiceRound ? child.rowTransitions+=rangeAjustment(rng) : child.rowTransitions-=rangeAjustment(rng);
+    }
 
     return child;
 }

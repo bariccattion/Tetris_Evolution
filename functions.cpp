@@ -44,7 +44,7 @@ int rotate(int px, int py, int r) {
     return pi;
 }
 
-bool collisionCheck(int nTetromino, int nRotation, int nPosX, int nPosY, const unsigned char *pField) {
+bool collisionCheck(int &nTetromino, int nRotation, int nPosX, int nPosY, const unsigned char *pField) {
     // All Field cells >0 are occupied
     for (int px = 0; px < 4; px++)
         for (int py = 0; py < 4; py++) {
