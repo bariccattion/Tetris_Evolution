@@ -11,6 +11,7 @@
 #endif
 
 #include <Windows.h>
+#include <fstream>
 #include "ai.h"
 #include "functions.h"
 
@@ -27,7 +28,10 @@ int main() {
     int nPieces=0;
     vector<int> vLines;
     int nScore=0;
-    int bestNPieces=0,bestScore=0, bestNLines=0;
+    int bestNPieces=0,bestScore=0;
+
+    // Open file
+    ofstream outputFile;
 
     // Variables for Pool Randomizer
     vector<int> pool{0, 1, 2, 3, 4, 5, 6};
@@ -59,7 +63,7 @@ int main() {
             pFieldLocal[y * nFieldWidth + x] = (x == 0 || x == nFieldWidth - 1 || y == nFieldHeight - 1) ? 9 : 0;
 
     // AI Startup
-    createInitialPopulation(pFieldLocal,nCurrentX,nCurrentY,nCurrentRotation,nCurrentPiece,nScore);
+    createInitialPopulation(pFieldLocal, nCurrentX, nCurrentY, nCurrentRotation, nCurrentPiece, nScore,outputFile);
 
     while(true){
         // Input
@@ -129,7 +133,7 @@ int main() {
                 bestNLines=nLinesCleared;
 
             //Evaluate next genome and play again;
-            evaluateNext(pFieldLocal, nCurrentX, nCurrentY, nCurrentRotation, nCurrentPiece, nScore);
+            evaluateNext(pFieldLocal, nCurrentX, nCurrentY, nCurrentRotation, nCurrentPiece, nScore, outputFile);
 
             nCurrentY = 0;
             nLinesCleared=0;

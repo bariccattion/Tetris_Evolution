@@ -3,9 +3,8 @@
 //
 
 #include "ai.h"
-#include "wchar.h"
 #include <string.h>
-#include <cwchar>
+#include <fstream>
 
 const unsigned int seed = time(0);
 mt19937_64 rng(seed);
@@ -238,7 +237,9 @@ vector <PossibleMoves> getAllPossibleMoves(unsigned char *pField, int nCurrentX,
 
 // Creates the initial population of genomes, each with random genes.
 
-void createInitialPopulation(unsigned char *pField, int &nCurrentX, int &nCurrentY, int &nCurrentRotation, int nCurrentPiece, int nScore) {
+void
+createInitialPopulation(unsigned char *pField, int &nCurrentX, int &nCurrentY, int &nCurrentRotation, int nCurrentPiece,
+                        int nScore, ofstream &outputFile) {
     uniform_real_distribution<double> range(-45000.0, 45000.0);
     Genome thisGenome;
     // For a given population size
@@ -261,7 +262,7 @@ void createInitialPopulation(unsigned char *pField, int &nCurrentX, int &nCurren
 //        thisGenome.aggregateHeight=range(rng);
         genomes.push_back(thisGenome);
     }
-    evaluateNext(pField, nCurrentX, nCurrentY, nCurrentRotation, nCurrentPiece, nScore);
+    evaluateNext(pField, nCurrentX, nCurrentY, nCurrentRotation, nCurrentPiece, nScore, outputFile);
 }
 
 void makeNextMove(unsigned char *pField, int &nCurrentX, int &nCurrentY, int &nCurrentRotation,  int nCurrentPiece, int nScore) {
@@ -285,16 +286,23 @@ void makeNextMove(unsigned char *pField, int &nCurrentX, int &nCurrentY, int &nC
     nCurrentY=bestMove.yPos;
 }
 
-void evaluateNext(unsigned char *pField, int &nCurrentX, int &nCurrentY, int &nCurrentRotation, int nCurrentPiece, int nScore) {
+void evaluateNext(unsigned char *pField, int &nCurrentX, int &nCurrentY, int &nCurrentRotation, int nCurrentPiece,
+                  int nScore, ofstream &outputFile) {
     nTimesPlayed++;
-    genomes.at(currentGenome).fitness+=movesTaken;
+    genomes.at(currentGenome).fitness+=nScore;
 
     if(nTimesPlayed == maxTimePlayed){
         genomes.at(currentGenome).fitness/=nTimesPlayed;
         nTimesPlayed=0;
         currentGenome++;
-        if (currentGenome == genomes.size())
+        if (currentGenome == genomes.size()){
+            outputFile.open("output.csv", ios::out | ios::in | ios::app);
+            outputFile << bestNLines;
+            outputFile << ";";
+            outputFile.close();
             evolve();
+            bestNLines=0;
+        }
     }
     // Reset moves taken
     movesTaken = 0;
@@ -327,10 +335,9 @@ void evolve() {
                     noble.at(j) = noble.at(j+1);
                     noble.at(j+1) = temp;
                 }
+    if(noble.size()>5)
+        noble.pop_back();
    }
-   if(noble.size()>5)
-       noble.pop_back();
-
 
     // Kill the worst of the population
     while(genomes.size() > populationSize/2)
@@ -387,35 +394,35 @@ Genome makeChild(Genome &mum, Genome &dad) {
     // We mutate each parameter using our mutationstep
     if (rangeCrossingOver(rng) < mutationRate) {
         choice=rangeCrossingOver(rng);choiceRound=round(choice);
-        choiceRound ? child.maximumAltitude+=rangeAjustment(rng) : child.maximumAltitude-=rangeAjustment(rng);
+        choiceRound ? child.maximumAltitude*=rangeAjustment(rng) : child.maximumAltitude/=rangeAjustment(rng);
     }
     if (rangeCrossingOver(rng) < mutationRate) {
         choice=rangeCrossingOver(rng);choiceRound=round(choice);
-        choiceRound ? child.connectedHolesCount+=rangeAjustment(rng) : child.connectedHolesCount-=rangeAjustment(rng);
+        choiceRound ? child.connectedHolesCount*=rangeAjustment(rng) : child.connectedHolesCount/=rangeAjustment(rng);
     }
     if (rangeCrossingOver(rng) < mutationRate) {
         choice=rangeCrossingOver(rng);choiceRound=round(choice);
-        choiceRound ? child.holeCount+=rangeAjustment(rng) : child.holeCount-=rangeAjustment(rng);
+        choiceRound ? child.holeCount*=rangeAjustment(rng) : child.holeCount/=rangeAjustment(rng);
     }
     if (rangeCrossingOver(rng) < mutationRate) {
         choice=rangeCrossingOver(rng);choiceRound=round(choice);
-        choiceRound ? child.maximumWellDepth+=rangeAjustment(rng) : child.maximumWellDepth-=rangeAjustment(rng);
+        choiceRound ? child.maximumWellDepth*=rangeAjustment(rng) : child.maximumWellDepth/=rangeAjustment(rng);
     }
     if (rangeCrossingOver(rng) < mutationRate) {
         choice=rangeCrossingOver(rng);choiceRound=round(choice);
-        choiceRound ? child.nLinesCleared+=rangeAjustment(rng) : child.nLinesCleared-=rangeAjustment(rng);
+        choiceRound ? child.nLinesCleared*=rangeAjustment(rng) : child.nLinesCleared/=rangeAjustment(rng);
     }
     if (rangeCrossingOver(rng) < mutationRate) {
         choice=rangeCrossingOver(rng);choiceRound=round(choice);
-        choiceRound ? child.weightedFilledSpotCount+=rangeAjustment(rng) : child.weightedFilledSpotCount-=rangeAjustment(rng);
+        choiceRound ? child.weightedFilledSpotCount*=rangeAjustment(rng) : child.weightedFilledSpotCount/=rangeAjustment(rng);
     }
     if (rangeCrossingOver(rng) < mutationRate) {
         choice=rangeCrossingOver(rng);choiceRound=round(choice);
-        choiceRound ? child.filledSpotCount+=rangeAjustment(rng) : child.filledSpotCount-=rangeAjustment(rng);
+        choiceRound ? child.filledSpotCount*=rangeAjustment(rng) : child.filledSpotCount/=rangeAjustment(rng);
     }
     if (rangeCrossingOver(rng) < mutationRate) {
         choice=rangeCrossingOver(rng);choiceRound=round(choice);
-        choiceRound ? child.rowTransitions+=rangeAjustment(rng) : child.rowTransitions-=rangeAjustment(rng);
+        choiceRound ? child.rowTransitions*=rangeAjustment(rng) : child.rowTransitions/=rangeAjustment(rng);
     }
 
     return child;
